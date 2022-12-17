@@ -1,9 +1,16 @@
-mod cli;
-use cli::Cli;
+pub mod cli;
+
 use clap::Parser;
+use crate::cli::Execute;
 
 fn main() {
 
-    let args = Cli::parse();
+    let cli = cli::Cli::parse();
+
+    match &cli.command {
+        cli::Commands::Add(add_args) => {
+            add_args.execute();
+        }
+    }
 
 }
