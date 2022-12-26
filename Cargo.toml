@@ -1,5 +1,5 @@
 [package]
-name = "ExpireFolder"
+name = "exp"
 version = "0.1.0"
 authors = ["Gioele F. <gioele.fiorenza2000@gmail.com>"]
 edition = "2021"
@@ -8,3 +8,8 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.29", features = ["derive"] }
+serde = { version = "1.0.151", features = ["derive"] }
+serde_json = "1.0"
+
+[dev-dependencies]
+serial_test = "*"

@@ -1,4 +1,7 @@
-pub mod cli;
+#![feature(absolute_path)]
+
+mod cli;
+mod file;
 
 use clap::Parser;
 use crate::cli::Execute;

@@ -1,6 +1,6 @@
 use crate::cli;
-use std::fs;
 use clap::{Args};
+use crate::file;
 
 #[derive(Args)]
 pub struct AddArgs {
@@ -10,9 +10,8 @@ pub struct AddArgs {
 impl cli::Execute for AddArgs {
 
     fn execute(&self) {
-        let abs_path = fs::canonicalize(&self.path).expect("Cannot get absolute path from relative. Check your path");
 
+        let mut wrt = file::writer::Writer::new();
+        wrt.add_entry(&self.path);
     }
-
-
 }
