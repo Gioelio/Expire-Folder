@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
-use crate::file;
+use crate::{error, file};
 use serde::{Serialize, Deserialize};
+use crate::error::ErrorKind;
 
 pub struct Writer {
     path: PathBuf
@@ -45,12 +46,17 @@ impl Writer {
         std::path::absolute(path).expect("Cannot get absolute path from relative. Check you have enter a correct path")
     }
 
-    pub fn add_entry(&mut self, path: &PathBuf) {
+    pub fn add_entry(&mut self, path: &PathBuf) -> Result<(), ErrorKind>{
         let mut file = self.get_file();
         let abs_path = Writer::get_abs_path(&path);
         let row = Row{path: abs_path};
 
-        writeln!(file, "{}", serde_json::to_string(&row).unwrap()).expect("Cannot write path into the expire list");
+        let res = writeln!(file, "{}", serde_json::to_string(&row).unwrap());
+        if res.is_err() {
+            return Err(ErrorKind::CantOpenFile);
+        }
+
+        Ok(())
     }
 
     pub fn check_entry(&mut self, path: &PathBuf) -> bool {
