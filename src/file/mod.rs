@@ -1,3 +1,6 @@
 pub mod writer;
+mod util;
 
-pub const ROOT_FILE_PATH: &str = "~/.config/ExpireFolder/settings";
+extern crate dirs;
+
+const HOME_FILE_CONFIG: &str = "~/.config/ExpireFolder/settings.conf";

@@ -2,10 +2,10 @@ use std::fs::File;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
-use crate::{file};
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::cli::add::AddArgs;
 use crate::error::ErrorKind;
+use crate::file::{HOME_FILE_CONFIG, util};
 
 pub struct Writer {
     path: PathBuf
@@ -41,15 +41,17 @@ impl Row {
 impl Writer {
 
     pub fn new() -> Writer{
-        Writer::from(file::ROOT_FILE_PATH)
+        Writer::from(HOME_FILE_CONFIG)
     }
 
     pub fn from(path: &str) -> Writer {
-        let path = Path::new(path);
+        let path = util::apply_home_dir(path);
+        let path = Path::new(path.as_str());
 
         if !path.exists() {
             let prefix = path.parent().unwrap();
             std::fs::create_dir_all(prefix).unwrap();
+
             File::create(path).unwrap();
         }
 
@@ -61,7 +63,9 @@ impl Writer {
     }
 
     fn get_abs_path(path: &PathBuf) -> PathBuf {
-        std::path::absolute(path).expect("Cannot get absolute path from relative. Check you have enter a correct path")
+        let str = util::apply_home_dir(path.as_os_str().to_str().unwrap());
+        let path = PathBuf::from(str);
+        std::path::absolute(path).expect(ErrorKind::CantGetAbsPath.as_str())
     }
 
     pub fn add_entry(&mut self, add_args: &AddArgs) -> Result<(), ErrorKind>{
