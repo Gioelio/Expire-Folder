@@ -6,7 +6,6 @@ mod error;
 
 use clap::Parser;
 use crate::cli::Execute;
-use crate::error::ErrorKind;
 
 fn main() {
 
