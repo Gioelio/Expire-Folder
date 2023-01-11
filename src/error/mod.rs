@@ -4,6 +4,8 @@ pub enum ErrorKind {
     NoTimeSpecified,
     InvalidTime,
     CantGetAbsPath,
+    WrongFormat,
+    CantWriteToFile,
 }
 
 impl ErrorKind {
@@ -13,6 +15,9 @@ impl ErrorKind {
             ErrorKind::CantOpenFile => "Cannot open or write expire list file",
             ErrorKind::InvalidTime => "The time entered is invalid",
             ErrorKind::CantGetAbsPath => "Cannot get absolute path from relative",
+            ErrorKind::WrongFormat => "Wrong data format, cannot parse",
+            ErrorKind::CantWriteToFile => "Cannot write to file",
         }
     }
 }
+

@@ -73,9 +73,10 @@ impl Writer {
         let abs_path = Writer::get_abs_path(&add_args.path);
 
         let row = Row{path: abs_path, expiration: add_args.get_exp_date()?};
-        let res = writeln!(file, "{}", serde_json::to_string(&row).unwrap());
+        let ser =  serde_json::to_string(&row).expect(ErrorKind::WrongFormat.as_str());
+        let res = writeln!(file, "{}", ser);
         if res.is_err() {
-            return Err(ErrorKind::CantOpenFile);
+            return Err(ErrorKind::CantWriteToFile);
         }
 
         Ok(())
@@ -106,7 +107,7 @@ pub mod test {
     use crate::cli::add::AddArgs;
     use crate::error::ErrorKind;
 
-    const TEST_FILE_PATH: &str = "./test/.config/ExpireFolder/expirelist";
+    const TEST_FILE_PATH: &str = "./test/.config/ExpireFolder/expirelist.conf";
 
     pub fn delete_folder(){
         let path = PathBuf::from("./test");
