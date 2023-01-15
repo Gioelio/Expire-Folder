@@ -15,7 +15,13 @@ fn main() {
         cli::Commands::Add(add_args) => {
             let err = add_args.execute().err();
             if err.is_some() {
-                panic!("{}", err.unwrap().as_str());
+                eprint!("{}", err.unwrap().as_str());
+            }
+        }
+        cli::Commands::List(list_args) => {
+            let err = list_args.execute().err();
+            if err.is_some() {
+                eprint!("{}", err.unwrap().as_str());
             }
         }
     }

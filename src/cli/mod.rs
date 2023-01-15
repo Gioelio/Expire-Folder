@@ -1,5 +1,7 @@
 use clap::{Subcommand, Parser};
 pub mod add;
+pub mod list;
+
 use crate::error;
 
 #[derive(Parser)]
@@ -11,7 +13,8 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Add(add::AddArgs)
+    Add(add::AddArgs),
+    List(list::List)
 }
 
 pub trait Execute {
