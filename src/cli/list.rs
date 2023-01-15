@@ -10,7 +10,7 @@ pub struct List {
     pub remove: bool,
 
     #[arg(short, long, default_value_t = false)]
-    pub exp: bool
+    pub no_exp: bool
 }
 
 impl List {
@@ -29,25 +29,26 @@ impl cli::Execute for List {
         let wrt = Writer::new();
         let exp_list = wrt.get_expired();
 
-        println!("Expired files:");
-        if exp_list.len() != 0 {
-            for entry in exp_list {
-                List::print_row(&entry);
+        if !self.no_exp {
+            println!("Expired files:");
+            if exp_list.len() != 0 {
+                for entry in exp_list {
+                    List::print_row(&entry);
 
-                if self.remove {
-                    wrt.remove_entry(&entry.path)?;
+                    if self.remove {
+                        wrt.remove_entry(&entry.path)?;
+                    }
                 }
-
+                println!("\n({} For removing all elements in the list, add the {} flag)", "Hint:".yellow(), "--remove".italic());
+            } else {
+                println!("   No expired files (to see unexpired files, add the {} flag)", "--no-exp".italic());
             }
-            println!("\n(suggest: For removing all elements in the list, add the --remove flag)");
-        } else {
-            println!("   No expired files");
         }
 
-        if !self.exp {
+        if self.no_exp {
             let no_exp_row: Vec<Row> = wrt.get_all().iter().filter(|row| !row.is_expired()).cloned().collect();
             if no_exp_row.len() != 0 {
-                println!("\nNot expired yet:");
+                println!("Not expired yet:");
                 let _ = no_exp_row.iter().for_each(|row| List::print_row(row));
             }
         }

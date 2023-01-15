@@ -133,7 +133,7 @@ impl Writer {
             }
         }
 
-        rows.sort_by(|a, b| a.get_days_expired().cmp(&b.get_days_expired()));
+        rows.sort_by(|a, b| b.get_days_expired().cmp(&a.get_days_expired()));
 
         rows
     }
