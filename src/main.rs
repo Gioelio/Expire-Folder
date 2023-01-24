@@ -1,5 +1,3 @@
-#![feature(absolute_path)]
-
 mod cli;
 mod file;
 mod error;

@@ -1,15 +1,14 @@
-use std::fs::File;
-use std::io::{BufRead, Write};
+use std::fs::{File, canonicalize};
+use std::io::{BufRead, BufReader, Lines, Write};
 use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use crate::cli::add::AddArgs;
 use crate::error::ErrorKind;
 use crate::file::{HOME_FILE_CONFIG, util};
-use crate::file;
 
 pub struct Writer {
-    path: PathBuf
+    path: PathBuf,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -78,9 +77,10 @@ impl Writer {
     }
 
     fn get_abs_path(path: &PathBuf) -> PathBuf {
-        let str = util::apply_home_dir(path.as_os_str().to_str().unwrap());
-        let path = PathBuf::from(str);
-        std::path::absolute(path).expect(ErrorKind::CantGetAbsPath.as_str())
+        let str = path.as_os_str().to_str().unwrap();
+        let exp_path = shellexpand::full(str).expect(ErrorKind::CantGetAbsPath.as_str());
+        let can_path = canonicalize(exp_path.as_ref()).expect(ErrorKind::CantGetAbsPath.as_str());
+        can_path
     }
 
     pub fn add_entry(&mut self, add_args: &AddArgs) -> Result<(), ErrorKind>{
@@ -102,40 +102,23 @@ impl Writer {
     }
 
     pub fn remove_entry(&self, path: &PathBuf) -> Result<(), ErrorKind> {
-        util::delete_element_from_fs(path);
-        let abs_path = Writer::get_abs_path(path);
-        let mut file = self.get_file();
-        let mut lines = Vec::new();
-        for line in std::io::BufReader::new(&file).lines() {
-            let line = line.unwrap();
-            let row = Row::from_file(&line).unwrap();
-            if row.path != abs_path {
-                lines.push(line);
-            }
-        }
 
-        file.set_len(0).unwrap();
-        for line in lines {
-            writeln!(file, "{}", line).unwrap();
-        }
+        self.get_file().set_len(0).unwrap();
+        self.iter().for_each(|row| {
+            if row.path.ne(path) {
+                self.store_entry(&row).unwrap();
+            }
+        });
+
+        util::delete_element_from_fs(path);
 
         Ok(())
     }
 
     pub fn get_all(&self) -> Vec<Row> {
-        let mut rows = Vec::new();
-        let file = self.get_file();
-        for line in std::io::BufReader::new(&file).lines() {
-            let line = line.unwrap();
-            match Row::from_file(&line) {
-                Some(row) => rows.push(row),
-                None => {}
-            }
-        }
-
-        rows.sort_by(|a, b| b.get_days_expired().cmp(&a.get_days_expired()));
-
-        rows
+        let mut vec: Vec<Row> = self.iter().collect();
+        vec.sort_by(|a, b| b.get_days_expired().cmp(&a.get_days_expired()));
+        vec
     }
 
     pub fn get_expired(&self) -> Vec<Row> {
@@ -144,24 +127,46 @@ impl Writer {
 
     pub fn check_entry(&mut self, path: &PathBuf) -> bool {
         let path = Writer::get_abs_path(path);
-        self.find(|row| -> bool {
+        self.iter().find(|row| -> bool {
             row.path.eq(&path)
         }).is_some()
     }
 
-    pub fn find<F>(&mut self, comp: F) -> Option<Row> where F: Fn(&Row) -> bool {
-        let file = self.get_file();
-        let reader = std::io::BufReader::new(file);
+    pub fn iter(&self) -> WriterIterator {
+        WriterIterator{_iter: BufReader::new(self.get_file()).lines()}
+    }
 
-        for line in reader.lines() {
-            let row = Row::from_file(line.unwrap().as_str()).unwrap();
-            if comp(&row) {
-                return Some(row);
+}
+
+pub struct WriterIterator {
+    _iter: Lines<BufReader<File>>
+}
+
+impl Iterator for WriterIterator {
+    type Item = Row;
+
+    fn next(&mut self) -> Option<Self::Item> {
+
+        let mut row = None;
+
+        while row.is_none() {
+            let next_value = self._iter.next();
+            if next_value.is_none() {
+                break;
             }
+
+            let line = next_value.unwrap().unwrap();
+            row = Row::from_file(line.as_str());
         }
+
+        if row.is_some() {
+            return Some(row.unwrap());
+        }
+
         None
     }
 }
+
 
 #[cfg(test)]
 pub mod test {
@@ -239,6 +244,29 @@ pub mod test {
         assert!(wrt.check_entry(&path));
         assert_eq!(wrt.get_expired().len(), 1);
         assert_eq!(wrt.get_expired()[0].path, Writer::get_abs_path(&path));
+    }
+
+    #[test]
+    #[serial]
+    #[should_panic]
+    pub fn inexistent_file() {
+        delete_config_folder();
+        let path = PathBuf::from("./test/test.txt");
+        let mut wrt = Writer::from(TEST_FILE_PATH);
+
+        assert_eq!(wrt.get_expired().len(), 0);
+        assert!(wrt.check_entry(&path));
+    }
+
+    #[test]
+    #[serial]
+    pub fn not_found_entry() {
+        delete_config_folder();
+        let path = PathBuf::from("./test");
+        let mut wrt = Writer::from(TEST_FILE_PATH);
+
+        assert_eq!(wrt.check_entry(&path), false);
+        assert_eq!(wrt.get_expired().len(), 0);
     }
 
 
