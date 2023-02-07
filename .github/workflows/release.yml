@@ -68,7 +68,7 @@ jobs:
       # Setup cross-compiler
       - uses: ATiltedTree/setup-rust@v1
         with:
-          targets: x86_64-pc-x86_64-windows-gnu
+          targets: x86_64-windows-gnu
           rust-version: stable # Works both with 'stable' and 'nightly'
 
       # Build for x86_64-windows based system
@@ -94,6 +94,7 @@ jobs:
   compile-x86_64-apple-darwin:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
 
       # Setup cross-compiler for apple-darwin system
       - uses: ATiltedTree/setup-rust@v1
@@ -109,7 +110,7 @@ jobs:
       - name: Run test on apple-darwin env
         run: cargo test --target x86_64-apple-darwin
 
-      - name: Build Your Code
+      - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
 
       - name: Rename binary
