@@ -43,7 +43,6 @@ jobs:
           toolchain: stable
           override: true
 
-
       # Build for x86_64-unknown-linux-gnu based system
       - name: Run test on x86_64-unknown-linux-gnu env
         run: cargo test
@@ -73,7 +72,7 @@ jobs:
       # Setup cross-compiler
       - uses: ATiltedTree/setup-rust@v1
         with:
-          targets: x86_64-windows-gnu
+          targets: x86_64-pc-windows-gnu
           rust-version: stable # Works both with 'stable' and 'nightly'
 
       # Build for x86_64-windows based system
@@ -119,6 +118,12 @@ jobs:
       # Build for apple-darwin system
       - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Check target
+        run: ls target
+
+      - name: Check binary
+        run: ls target/release
 
       - name: Run test on apple-darwin env
         run: cargo test --target x86_64-apple-darwin
