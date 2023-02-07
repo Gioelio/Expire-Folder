@@ -65,6 +65,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
       # Setup cross-compiler
       - uses: ATiltedTree/setup-rust@v1
         with:
@@ -75,11 +80,11 @@ jobs:
       - name: Add target for x86_64-windows target
         run: rustup target add x86_64-pc-windows-gnu
 
-      - name: Run test on x86_64-windows env
-        run: cargo test --target x86_64-pc-windows-gnu
-
       - name: Run build for x86_64-windows arch
         run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Run test on x86_64-windows env
+        run: cargo test --target x86_64-pc-windows-gnu
 
       - name: Rename binary
         run: mv target/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
@@ -96,6 +101,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
       # Setup cross-compiler for apple-darwin system
       - uses: ATiltedTree/setup-rust@v1
         with:
@@ -107,11 +117,11 @@ jobs:
           osx-version: "12.3"
 
       # Build for apple-darwin system
-      - name: Run test on apple-darwin env
-        run: cargo test --target x86_64-apple-darwin
-
       - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Run test on apple-darwin env
+        run: cargo test --target x86_64-apple-darwin
 
       - name: Rename binary
         run: mv target/release/exp target/release/x86_64-apple-darwin
