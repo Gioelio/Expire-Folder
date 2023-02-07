@@ -1,4 +1,4 @@
-name: Rust test
+name: Deploy release
 
 on:
   push:
@@ -7,7 +7,21 @@ on:
     branches: [ release/beta ]
 
 jobs:
-  release:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v2
+      - name: Setup | Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+          components: clippy
+      - name: Build | Lint
+        run: cargo clippy
+
+  compile-x86_64-unknown-linux-gnu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -29,13 +43,59 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Run test
+
+      # Build for x86_64-unknown-linux-gnu based system
+      - name: Run test on x86_64-unknown-linux-gnu env
         run: cargo test
 
-      - name: Run build
+      - name: Run build for x86_64-unknown-linux-gnu arch
         run: cargo build --release
 
-      # Cross compile for different architectures
+      - name: Rename binary
+        run: mv target/release/exp target/release/x86_64-unknown-linux-gnu
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: x86_64-unknown-linux-gnu_binary
+          path: target/release/x86_64-unknown-linux-gnu
+          if-no-files-found: error
+
+  compile-x86_64-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # Setup cross-compiler
+      - uses: ATiltedTree/setup-rust@v1
+        with:
+          targets: x86_64-pc-x86_64-windows-gnu
+          rust-version: stable # Works both with 'stable' and 'nightly'
+
+      # Build for x86_64-windows based system
+      - name: Add target for x86_64-windows target
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Run test on x86_64-windows env
+        run: cargo test --target x86_64-pc-windows-gnu
+
+      - name: Run build for x86_64-windows arch
+        run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - name: Rename binary
+        run: mv target/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: x86_64-windows_binary
+          path: target/release/x86_64-pc-windows-gnu.exe
+          if-no-files-found: error
+
+
+  compile-x86_64-apple-darwin:
+    runs-on: ubuntu-latest
+    steps:
+
+      # Setup cross-compiler for apple-darwin system
       - uses: ATiltedTree/setup-rust@v1
         with:
           targets: x86_64-apple-darwin
@@ -45,9 +105,54 @@ jobs:
         with:
           osx-version: "12.3"
 
-      # Build your code for apple-darwin based release
+      # Build for apple-darwin system
+      - name: Run test on apple-darwin env
+        run: cargo test --target x86_64-apple-darwin
+
       - name: Build Your Code
         run: cargo build --release --target x86_64-apple-darwin
 
+      - name: Rename binary
+        run: mv target/release/exp target/release/x86_64-apple-darwin
 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: apple-darwin_binary
+          path: target/release/x86_64-apple-darwin
+          if-no-files-found: error
+
+  release:
+    needs: [lint, compile-x86_64-unknown-linux-gnu, compile-x86_64-windows, compile-x86_64-apple-darwin]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: apple-darwin_binary
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: x86_64-windows_binary
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: x86_64-unknown-linux-gnu_binary
+
+      # Get version from binary
+      - name: version
+        run: echo "::set-output name=version::$(./x86_64-unknown-linux-gnu --version)"
+        id: version
+
+      # Create release
+      - name: release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          artifacts: x86_64-unknown-linux-gnu,x86_64-pc-windows-gnu.exe,x86_64-apple-darwin
+          draft: true
+          prerelease: true
+          release_name: ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref }}
+          #body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
