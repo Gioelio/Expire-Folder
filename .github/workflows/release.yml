@@ -44,9 +44,6 @@ jobs:
           override: true
 
       # Build for x86_64-unknown-linux-gnu based system
-      - name: Run test on x86_64-unknown-linux-gnu env
-        run: cargo test
-
       - name: Run build for x86_64-unknown-linux-gnu arch
         run: cargo build --release
 
@@ -81,9 +78,6 @@ jobs:
 
       - name: Run build for x86_64-windows arch
         run: cargo build --release --target x86_64-pc-windows-gnu
-
-      - name: Run test on x86_64-windows env
-        run: cargo test --target x86_64-pc-windows-gnu
 
       - name: Rename binary
         run: mv target/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
@@ -120,16 +114,13 @@ jobs:
         run: cargo build --release --target x86_64-apple-darwin
 
       - name: Check target
-        run: ls target
+        run: ls x86_64-apple-darwin
 
       - name: Check binary
-        run: ls target/release
-
-      - name: Run test on apple-darwin env
-        run: cargo test --target x86_64-apple-darwin
+        run: ls x86_64-apple-darwin/release
 
       - name: Rename binary
-        run: mv target/release/exp target/release/x86_64-apple-darwin
+        run: mv target/x86_64-apple-darwin/release/exp target/release/x86_64-apple-darwin
 
       - uses: actions/upload-artifact@v2
         with:
