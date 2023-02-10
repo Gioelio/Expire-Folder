@@ -74,7 +74,10 @@ jobs:
 
       # Build for x86_64-windows based system
       - name: Add target for x86_64-windows target
-        run: rustup target add x86_64-pc-windows-gnu
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu
+
+      - name: Add mingw64 for cross linking
+        run: apt install -y g++-mingw-w64-x86-64
 
       - name: Run build for x86_64-windows arch
         run: cargo build --release --target x86_64-pc-windows-gnu
@@ -114,10 +117,13 @@ jobs:
         run: cargo build --release --target x86_64-apple-darwin
 
       - name: Check target
-        run: ls x86_64-apple-darwin
+        run: ls ./
+
+      - name: Check release
+        run: ls target/
 
       - name: Check binary
-        run: ls x86_64-apple-darwin/release
+        run: ls target/x86_64-apple-darwin/release
 
       - name: Rename binary
         run: mv target/x86_64-apple-darwin/release/exp target/release/x86_64-apple-darwin
