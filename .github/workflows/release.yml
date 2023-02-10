@@ -69,10 +69,10 @@ jobs:
         run: rustup toolchain install stable-x86_64-pc-windows-gnu
 
       - name: Update apt
-        run: apt update
+        run: sudo apt update
 
       - name: Add mingw64 for cross linking
-        run: apt install -y g++-mingw-w64-x86-64
+        run: sudo apt install -y g++-mingw-w64-x86-64
 
       - name: Add target to rustup
         run: rustup target add x86_64-pc-windows-gnu
@@ -104,10 +104,10 @@ jobs:
         run: rustup toolchain install stable-x86_64-apple-darwin
 
       - name: Update apt
-        run: apt update
+        run: sudo apt update
 
       - name: Add dependecy for cross-compiler
-        run: apt install -y libssl-dev cmake clang llvm-dev lzma-dev libxml2-dev
+        run: sudo apt install -y libssl-dev cmake clang llvm-dev lzma-dev libxml2-dev
 
       - name: Add target to rustup
         run: rustup target add x86_64-apple-darwin
