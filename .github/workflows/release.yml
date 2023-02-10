@@ -43,7 +43,6 @@ jobs:
           toolchain: stable
           override: true
 
-      # Build for x86_64-unknown-linux-gnu based system
       - name: Run build for x86_64-unknown-linux-gnu arch
         run: cargo build --release
 
@@ -66,24 +65,23 @@ jobs:
           toolchain: stable
           override: true
 
-      # Setup cross-compiler
-      - uses: ATiltedTree/setup-rust@v1
-        with:
-          targets: x86_64-pc-windows-gnu
-          rust-version: stable # Works both with 'stable' and 'nightly'
-
-      # Build for x86_64-windows based system
       - name: Add target for x86_64-windows target
         run: rustup toolchain install stable-x86_64-pc-windows-gnu
 
+      - name: Update apt
+        run: apt update
+
       - name: Add mingw64 for cross linking
         run: apt install -y g++-mingw-w64-x86-64
+
+      - name: Add target to rustup
+        run: rustup target add x86_64-pc-windows-gnu
 
       - name: Run build for x86_64-windows arch
         run: cargo build --release --target x86_64-pc-windows-gnu
 
       - name: Rename binary
-        run: mv target/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
+        run: mv target/x86_64-pc-windows-gnu/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
 
       - uses: actions/upload-artifact@v2
         with:
@@ -95,35 +93,31 @@ jobs:
   compile-x86_64-apple-darwin:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      # Setup cross-compiler for apple-darwin system
-      - uses: ATiltedTree/setup-rust@v1
-        with:
-          targets: x86_64-apple-darwin
-          rust-version: stable # Works both with 'stable' and 'nightly'
+      - name: Add target for x86_64-windows target
+        run: rustup toolchain install stable-x86_64-apple-darwin
+
+      - name: Update apt
+        run: apt update
+
+      - name: Add dependecy for cross-compiler
+        run: apt install -y libssl-dev cmake clang llvm-dev lzma-dev libxml2-dev
+
+      - name: Add target to rustup
+        run: rustup target add x86_64-apple-darwin
 
       - uses: mbround18/setup-osxcross@v1
         with:
           osx-version: "12.3"
 
-      # Build for apple-darwin system
       - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
-
-      - name: Check target
-        run: ls ./
-
-      - name: Check release
-        run: ls target/
-
-      - name: Check binary
-        run: ls target/x86_64-apple-darwin/release
 
       - name: Rename binary
         run: mv target/x86_64-apple-darwin/release/exp target/release/x86_64-apple-darwin
