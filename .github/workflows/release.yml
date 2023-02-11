@@ -154,7 +154,7 @@ jobs:
         uses: actions/create-release@v1
         id: create_release
         with:
-          artifacts: x86_64-unknown-linux-gnu,x86_64-pc-windows-gnu.exe,x86_64-apple-darwin
+          artifacts: "x86_64-unknown-linux-gnu,x86_64-pc-windows-gnu.exe,x86_64-apple-darwin"
           draft: true
           prerelease: true
           release_name: ${{ steps.version.outputs.version }}
