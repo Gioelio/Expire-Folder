@@ -80,13 +80,10 @@ jobs:
       - name: Run build for x86_64-windows arch
         run: cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Rename binary
-        run: mv target/x86_64-pc-windows-gnu/release/exp.exe target/release/x86_64-pc-windows-gnu.exe
-
       - uses: actions/upload-artifact@v2
         with:
           name: x86_64-windows_binary
-          path: target/release/x86_64-pc-windows-gnu.exe
+          path: target/x86_64-pc-windows-gnu/release/exp.exe
           if-no-files-found: error
 
 
@@ -119,13 +116,10 @@ jobs:
       - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
 
-      - name: Rename binary
-        run: mv target/x86_64-apple-darwin/release/exp target/release/x86_64-apple-darwin
-
       - uses: actions/upload-artifact@v2
         with:
-          name: apple-darwin_binary
-          path: target/release/x86_64-apple-darwin
+          name: x86_64-apple-darwin_binary
+          path: target/x86_64-apple-darwin/release/exp
           if-no-files-found: error
 
   release:
@@ -134,32 +128,75 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: apple-darwin_binary
+          name: x86_64-apple-darwin_binary
+
+      - name: Move binary into folder
+        run: mkdir x86_64-apple-darwin && mv exp ./x86_64-apple-darwin/exp
 
       - uses: actions/download-artifact@v3
         with:
           name: x86_64-windows_binary
 
+      - name: Move binary into folder
+        run: mkdir x86_64-windows && mv exp.exe ./x86_64-windows/exp.exe
+
       - uses: actions/download-artifact@v3
         with:
           name: x86_64-unknown-linux-gnu_binary
+
+      - name: Move binary into folder
+        run: mkdir x86_64-unknown-linux-gnu && mv exp ./x86_64-unknown-linux-gnu/exp
 
       # Get version from binary
       - name: version
         run: echo "::set-output name=version::$(./x86_64-unknown-linux-gnu --version)"
         id: version
 
+      - name: Create tag based on version
+        uses: laputansoft/github-tag-action@v4.6
+        with:
+          github_token: ${{ env.github-token }}
+          tag: ${{ steps.version.outputs.version }}
+
       # Create release
-      - name: release
+      - name: create_release
         uses: actions/create-release@v1
         id: create_release
         with:
-          artifacts: "x86_64-unknown-linux-gnu,x86_64-pc-windows-gnu.exe,x86_64-apple-darwin"
           draft: true
           prerelease: true
           release_name: ${{ steps.version.outputs.version }}
           tag_name: ${{ github.ref }}
-          #body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
+      - name: upload darwin artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./x86_64-apple-darwin/exp
+          asset_name: x86_64-apple-darwin.tar.gz
+          asset_content_type: application/gzip
+
+      - name: upload windows artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./x86_64-windows/exp.exe
+          asset_name: x86_64-windows.tar.gz
+          asset_content_type: application/gzip
+
+      - name: upload linux artifact
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./x86_64-unknown-linux-gnu/exp
+          asset_name: x86_64-unknown-linux-gnu.tar.gz
+          asset_content_type: application/gzip
 
