@@ -12,19 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup | Checkout
-        uses: actions/checkout@v2
-      - name: Setup | Rust
-        uses: ATiltedTree/setup-rust@v1
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
         with:
-          rust-version: stable
-          components: clippy
+          toolchain: stable
+          override: true
       - name: Build | Lint
         run: cargo clippy
 
   compile-x86_64-unknown-linux-gnu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Cache cargo registry
         uses: actions/cache@v2
@@ -55,7 +54,7 @@ jobs:
   compile-x86_64-windows:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -129,6 +128,8 @@ jobs:
 
       - name: Move binary into folder
         run: mkdir x86_64-apple-darwin && mv exp ./x86_64-apple-darwin/exp
+      - name: Compress file
+        run: tar -czvf x86_64-apple-darwin.tar.gz ./x86_64-apple-darwin
 
       - uses: actions/download-artifact@v3
         with:
@@ -136,6 +137,8 @@ jobs:
 
       - name: Move binary into folder
         run: mkdir x86_64-windows && mv exp.exe ./x86_64-windows/exp.exe
+      - name: Compress file
+        run: tar -czvf x86_64-windows.tar.gz ./x86_64-windows
 
       - uses: actions/download-artifact@v3
         with:
@@ -143,6 +146,8 @@ jobs:
 
       - name: Move binary into folder
         run: mkdir x86_64-unknown-linux-gnu && mv exp ./x86_64-unknown-linux-gnu/exp
+      - name: Compress file
+        run: tar -czvf x86_64-unknown-linux-gnu.tar.gz ./x86_64-unknown-linux-gnu
 
       # Get version from binary
       - name: version
@@ -163,7 +168,7 @@ jobs:
           draft: true
           prerelease: true
           release_name: ${{ steps.version.outputs.version }}
-          tag_name: ${{ github.ref }}
+          tag_name: ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
@@ -173,7 +178,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./x86_64-apple-darwin/exp
+          asset_path: ./x86_64-apple-darwin.tar.gz
           asset_name: x86_64-apple-darwin.tar.gz
           asset_content_type: application/gzip
 
@@ -183,7 +188,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./x86_64-windows/exp.exe
+          asset_path: ./x86_64-windows.tar.gz
           asset_name: x86_64-windows.tar.gz
           asset_content_type: application/gzip
 
@@ -193,7 +198,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./x86_64-unknown-linux-gnu/exp
+          asset_path: ./x86_64-unknown-linux-gnu.tar.gz
           asset_name: x86_64-unknown-linux-gnu.tar.gz
           asset_content_type: application/gzip
 
