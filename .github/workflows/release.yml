@@ -124,6 +124,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          #excludeTagsRegex: "*-beta"
+          output: CHANGELOG.md
+
       - uses: actions/download-artifact@v3
         with:
           name: x86_64-apple-darwin_binary
@@ -171,6 +177,7 @@ jobs:
           prerelease: true
           release_name: ${{ steps.version.outputs.version }}
           tag_name: ${{ github.ref }}
+          body_path: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
