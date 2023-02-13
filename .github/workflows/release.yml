@@ -151,8 +151,10 @@ jobs:
 
       # Get version from binary
       - name: version
-        run: echo "::set-output name=version::$(./x86_64-unknown-linux-gnu --version)"
+        run: echo "version=$(./x86_64-unknown-linux-gnu/exp --version)-beta" >> $GITHUB_OUTPUT
         id: version
+
+      - uses: actions/checkout@v3
 
       - name: Create tag based on version
         uses: laputansoft/github-tag-action@v4.6
