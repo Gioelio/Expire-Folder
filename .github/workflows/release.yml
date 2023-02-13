@@ -153,7 +153,7 @@ jobs:
 
       # Get version from binary
       - name: version
-        run: sudo chmod 777 ./x86_64-unknown-linux-gnu/exp echo "version=$(./x86_64-unknown-linux-gnu/exp --version)-beta" >> $GITHUB_OUTPUT
+        run: sudo chmod 777 ./x86_64-unknown-linux-gnu/exp && echo "version=$(./x86_64-unknown-linux-gnu/exp --version)-beta" >> $GITHUB_OUTPUT
         id: version
 
       - name: Create tag based on version
