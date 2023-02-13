@@ -122,6 +122,8 @@ jobs:
     needs: [lint, compile-x86_64-unknown-linux-gnu, compile-x86_64-windows, compile-x86_64-apple-darwin]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+
       - uses: actions/download-artifact@v3
         with:
           name: x86_64-apple-darwin_binary
@@ -151,10 +153,8 @@ jobs:
 
       # Get version from binary
       - name: version
-        run: echo "version=$(./x86_64-unknown-linux-gnu/exp --version)-beta" >> $GITHUB_OUTPUT
+        run: sudo chmod 777 ./x86_64-unknown-linux-gnu/exp echo "version=$(./x86_64-unknown-linux-gnu/exp --version)-beta" >> $GITHUB_OUTPUT
         id: version
-
-      - uses: actions/checkout@v3
 
       - name: Create tag based on version
         uses: laputansoft/github-tag-action@v4.6
