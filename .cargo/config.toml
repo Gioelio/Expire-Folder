@@ -1,0 +1,4 @@
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-args=-D__aarch64__"]
+linker = "o64h-clang"
+ar = "aarch64-apple-darwin20.4-ar"

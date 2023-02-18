@@ -93,13 +93,10 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Add target for x86_64-windows target
-        run: rustup toolchain install stable-x86_64-apple-darwin
-
       - name: Update apt
         run: sudo apt update
 
-      - name: Add dependecy for cross-compiler
+      - name: Add dependency for cross-compiler
         run: sudo apt install -y libssl-dev cmake clang llvm-dev lzma-dev libxml2-dev
 
       - name: Add target to rustup
@@ -112,14 +109,37 @@ jobs:
       - name: Build for apple-darwin arch
         run: cargo build --release --target x86_64-apple-darwin
 
-      - name: Build for apple-darwin arm arch
-        run: cargo build --release --target aarch64-apple-darwin
-
       - uses: actions/upload-artifact@v2
         with:
           name: x86_64-apple-darwin_binary
           path: target/x86_64-apple-darwin/release/exp
           if-no-files-found: error
+
+  compile-aarch64-apple-darwin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Update apt
+        run: sudo apt update
+
+      - name: Add dependency for cross-compiler
+        run: sudo apt install -y libssl-dev cmake clang llvm-dev lzma-dev libxml2-dev
+
+      - name: Add target to rustup
+        run: rustup target add aarch64-apple-darwin
+
+      - uses: mbround18/setup-osxcross@v1
+        with:
+          osx-version: "12.3"
+
+      - name: Build for apple-darwin arm arch
+        run: cargo build --release --target aarch64-apple-darwin
 
       - uses: actions/upload-artifact@v2
         with:
@@ -128,7 +148,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [lint, compile-x86_64-unknown-linux-gnu, compile-x86_64-windows, compile-x86_64-apple-darwin]
+    needs: [lint, compile-x86_64-unknown-linux-gnu, compile-x86_64-windows, compile-x86_64-apple-darwin, compile-aarch64-apple-darwin]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
