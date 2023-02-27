@@ -90,7 +90,7 @@ jobs:
 
       - uses: ATiltedTree/setup-rust@v1
         with:
-          targets: aarch64-apple-darwin
+          targets: x86_64-apple-darwin
           rust-version: nightly
 
       - name: Add target to rustup
