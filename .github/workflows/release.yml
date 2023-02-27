@@ -88,10 +88,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - uses: ATiltedTree/setup-rust@v1
         with:
-          toolchain: stable
-          override: true
+          targets: aarch64-apple-darwin
+          rust-version: nightly
 
       - name: Add target to rustup
         run: rustup target add x86_64-apple-darwin
