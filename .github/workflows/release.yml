@@ -84,7 +84,7 @@ jobs:
 
 
   compile-all-apple-darwin:
-    runs-on: macos-12
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
