@@ -113,7 +113,7 @@ jobs:
         run: unzip osx-cross.zip
 
       - name: Add osx-cross bin to path
-        run: echo "::add-path::$(pwd)/osx-cross/bin"
+        run: export PATH="$(pwd)/osx-cross/bin:$PATH"
 
       - name: Build for apple-darwin x86_64 arch
         run: cargo build --release --target x86_64-apple-darwin
