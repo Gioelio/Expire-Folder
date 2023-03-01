@@ -92,7 +92,6 @@ jobs:
         with:
           toolchain: stable
           override: true
-
       - name: Add target for x86_64-app target
         run: rustup toolchain install stable-x86_64-apple-darwin
 
@@ -109,7 +108,7 @@ jobs:
         run: rustup target add aarch64-apple-darwin
 
       - name: Download osx-cross bin
-        run: curl -c ./cookie -s -L "https://dirve.google.com/uc?export=download&id=${{ secrets.OSX_URL_ID }}" > /dev/null &&
+        run: curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${{ secrets.OSX_URL_ID }}" > /dev/null &&
           curl -Lb ./cookie "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${{ secrets.OSX_URL_ID }}" -o osx-cross.zip
 
       - name: Unzip osx-cross bin
