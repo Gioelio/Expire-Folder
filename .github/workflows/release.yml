@@ -112,9 +112,6 @@ jobs:
       - name: Unzip osx-cross bin
         run: unzip osx-cross.zip
 
-      - name: Build for apple-darwin x86_64 arch
-        run: cargo build --release --target x86_64-apple-darwin
-
       - name: Add osx-cross bin to path
         run: echo "::add-path::$(pwd)/osx-cross/bin"
 
