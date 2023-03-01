@@ -115,11 +115,11 @@ jobs:
       - name: Add osx-cross bin to path
         run: export PATH="$(pwd)/osx-cross/bin:$PATH"
 
-      - name: Build for apple-darwin x86_64 arch
-        run: cargo build --release --target x86_64-apple-darwin
-
       - name: Build for apple-darwin arm arch
         run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Build for apple-darwin x86_64 arch
+        run: cargo build --release --target x86_64-apple-darwin
 
       - uses: actions/upload-artifact@v2
         with:
