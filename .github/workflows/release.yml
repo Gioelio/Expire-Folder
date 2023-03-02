@@ -113,13 +113,13 @@ jobs:
         run: unzip osx-cross.zip
 
       - name: Add osx-cross bin to path
-        run: export PATH="$(pwd)/bin:$PATH"
+        run: export PATH="$(pwd)/osxcross/target/bin:$PATH"
 
       - shell: bash
         run: |
           echo "PATH=$(pwd)/osxcross/target/bin:$PATH" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=$(pwd)/bin/x86_64-apple-darwin21.4-clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS=-Car=$(pwd)/bin/x86_64-apple-darwin21.4-ar,-Clink-arg=-undefined,-Clink-arg=dynamic_lookup" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=$(pwd)/osxcross/target/bin/x86_64-apple-darwin21.4-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS=-Car=$(pwd)/osxcross/target/bin/x86_64-apple-darwin21.4-ar,-Clink-arg=-undefined,-Clink-arg=dynamic_lookup" >> $GITHUB_ENV
           echo CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS
 
       - name: Build for apple-darwin x86_64 arch
