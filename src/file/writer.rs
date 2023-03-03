@@ -1,5 +1,6 @@
 use std::fs::{File, canonicalize};
 use std::io::{BufRead, BufReader, Lines, Write};
+use std::panic;
 use std::path::{Path, PathBuf};
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
@@ -44,7 +45,7 @@ impl Row {
     }
 
     pub fn get_days_left(&self) -> i64 {
-        self.get_days_expired() * -1
+        -self.get_days_expired()
     }
 
     pub fn is_expired(&self) -> bool {
@@ -69,17 +70,17 @@ impl Writer {
             File::create(path).unwrap();
         }
 
-        return Writer{path: PathBuf::from(path)};
+        Writer{path: PathBuf::from(path)}
     }
 
     fn get_file(&self) -> File {
         std::fs::OpenOptions::new().write(true).append(true).read(true).open(&self.path).unwrap()
     }
 
-    fn get_abs_path(path: &PathBuf) -> PathBuf {
+    fn get_abs_path(path: &Path) -> PathBuf {
         let str = path.as_os_str().to_str().unwrap();
-        let exp_path = shellexpand::full(str).expect(ErrorKind::CantGetAbsPath.as_str());
-        let can_path = canonicalize(exp_path.as_ref()).expect(ErrorKind::CantGetAbsPath.as_str());
+        let exp_path = shellexpand::full(str).unwrap_or_else(|_| { panic!("{}", ErrorKind::CantGetAbsPath.as_str()) });
+        let can_path = canonicalize(exp_path.as_ref()).unwrap_or_else(|_| { panic!("{}", ErrorKind::CantGetAbsPath.as_str()) });
         can_path
     }
 
@@ -92,8 +93,8 @@ impl Writer {
 
     fn store_entry(&self, row: &Row) -> Result<(),ErrorKind> {
         let mut file = self.get_file();
-        let ser =  serde_json::to_string(&row).expect(ErrorKind::WrongFormat.as_str());
-        let res = writeln!(file, "{}", ser);
+        let ser =  serde_json::to_string(&row).unwrap_or_else(|_| { panic!("{}", ErrorKind::WrongFormat.as_str()) });
+        let res = writeln!(file, "{ser}");
         if res.is_err() {
             return Err(ErrorKind::CantWriteToFile);
         }
@@ -102,34 +103,47 @@ impl Writer {
     }
 
     pub fn remove_entry(&self, path: &PathBuf) -> Result<(), ErrorKind> {
+        let mut restore_rows = vec![];
+        let mut removed = false;
 
-        self.get_file().set_len(0).unwrap();
         self.iter().for_each(|row| {
-            if row.path.ne(path) {
-                self.store_entry(&row).unwrap();
+            if row.path.ne(&Writer::get_abs_path(path)) {
+                restore_rows.push(row);
+            }
+            else {
+                removed = true;
             }
         });
 
+        if !removed {
+            return Err(ErrorKind::CantFindElement);
+        }
+
         util::delete_element_from_fs(path);
+        self.get_file().set_len(0).unwrap();
+
+        restore_rows.iter().for_each(|row| {
+            self.store_entry(row).unwrap();
+        });
 
         Ok(())
     }
 
-    pub fn get_all(&self) -> Vec<Row> {
+    pub fn get_all_ordered(&self) -> Vec<Row> {
         let mut vec: Vec<Row> = self.iter().collect();
-        vec.sort_by(|a, b| b.get_days_expired().cmp(&a.get_days_expired()));
+        vec.sort_by_key(|a| std::cmp::Reverse(a.get_days_expired()));
         vec
     }
 
     pub fn get_expired(&self) -> Vec<Row> {
-        self.get_all().iter().filter(|row| row.is_expired()).cloned().collect()
+        self.get_all_ordered().iter().filter(|row| row.is_expired()).cloned().collect()
     }
 
-    pub fn check_entry(&mut self, path: &PathBuf) -> bool {
+    pub fn check_entry(&mut self, path: &Path) -> bool {
         let path = Writer::get_abs_path(path);
-        self.iter().find(|row| -> bool {
+        self.iter().any(|row| -> bool {
             row.path.eq(&path)
-        }).is_some()
+        })
     }
 
     pub fn iter(&self) -> WriterIterator {
@@ -159,7 +173,7 @@ impl Iterator for WriterIterator {
             row = Row::from_file(line.as_str());
         }
 
-        if row.is_some() {
+        if let Some(..) = row {
             return Some(row.unwrap());
         }
 
@@ -172,7 +186,7 @@ impl Iterator for WriterIterator {
 pub mod test {
     use std::fs;
     use std::fs::File;
-    use std::path::PathBuf;
+    use std::path::{PathBuf};
     use crate::file::writer::{Row, Writer};
     use serial_test::serial;
     use crate::cli::add::AddArgs;
@@ -216,7 +230,7 @@ pub mod test {
         assert!(wrt.check_entry(&PathBuf::from("./target")));
     }
 
-    pub fn create_file_expired(path: &PathBuf) {
+    pub fn track_expired_file(path: &PathBuf) {
         let wrt = Writer::from(TEST_FILE_PATH);
         File::create(path).unwrap();
         let path = Writer::get_abs_path(&PathBuf::from(path));
@@ -239,7 +253,7 @@ pub mod test {
         save_entry();   //to add an entry not expired
         let path = PathBuf::from("./test/test.txt");
         let mut wrt = Writer::from(TEST_FILE_PATH);
-        create_file_expired(&path);
+        track_expired_file(&path);
 
         assert!(wrt.check_entry(&path));
         assert_eq!(wrt.get_expired().len(), 1);
@@ -276,12 +290,15 @@ pub mod test {
         delete_config_folder();
         let mut wrt = Writer::from(TEST_FILE_PATH);
         let path = PathBuf::from("./test/test.txt");
+        let second_path = PathBuf::from("./test/test2.txt");
 
-        create_file_expired(&path);
+        track_expired_file(&path);
+        track_expired_file(&second_path);
         assert!(wrt.check_entry(&path));
 
         wrt.remove_entry(&path).expect("Error while removing entry");
-        assert!(wrt.get_expired().is_empty());
+        assert!(wrt.check_entry(&second_path));
+        assert!(second_path.exists());
         assert_eq!(path.exists(), false);
     }
 

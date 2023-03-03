@@ -27,7 +27,7 @@ impl AddArgs {
         let mut date = Utc::now().checked_add_months(Months::new(month as u32)).ok_or(ErrorKind::InvalidTime);
         date = date?.checked_add_days(Days::new(self.day.unwrap_or(0))).ok_or( ErrorKind::InvalidTime);
 
-        Ok(date?)
+        date
     }
 }
 
@@ -40,6 +40,6 @@ impl cli::Execute for AddArgs {
             return Err(ErrorKind::NoTimeSpecified);
         }
 
-        wrt.add_entry(&self)
+        wrt.add_entry(self)
     }
 }
