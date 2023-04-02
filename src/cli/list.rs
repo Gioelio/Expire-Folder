@@ -36,7 +36,9 @@ impl cli::Execute for List {
                     List::print_row(&entry);
 
                     if self.remove {
-                        wrt.remove_entry(&entry.path)?;
+                        wrt.remove_entry(&entry.path).unwrap_or_else(|err| {
+                            print!("Error while removing: {} \n\t{}{}", entry.path.as_os_str().to_str().unwrap_or_else(|| "unknown"), "Error: ".red(), err.as_str().red());
+                        });
                     }
                 }
                 println!("\n({} For removing all elements in the list, add the {} flag)", "Hint:".yellow(), "--remove".italic());

@@ -77,17 +77,21 @@ impl Writer {
         std::fs::OpenOptions::new().write(true).append(true).read(true).open(&self.path).unwrap()
     }
 
-    fn get_abs_path(path: &Path) -> PathBuf {
+    fn get_abs_path(path: &Path) -> Result<PathBuf, ErrorKind> {
         let str = path.as_os_str().to_str().unwrap();
-        let exp_path = shellexpand::full(str).unwrap_or_else(|_| { panic!("{}", ErrorKind::CantGetAbsPath.as_str()) });
-        let can_path = canonicalize(exp_path.as_ref()).unwrap_or_else(|_| { panic!("{}", ErrorKind::CantGetAbsPath.as_str()) });
-        can_path
+        return shellexpand::full(str).map_err(|_| ErrorKind::CantGetAbsPath).and_then(|exp_path| {
+            return canonicalize(exp_path.as_ref()).map_err(|_| ErrorKind::CantGetAbsPath)
+        });
     }
 
     pub fn add_entry(&mut self, add_args: &AddArgs) -> Result<(), ErrorKind>{
         let abs_path = Writer::get_abs_path(&add_args.path);
 
-        let row = Row{path: abs_path, expiration: add_args.get_exp_date()?};
+        if abs_path.is_err() {
+            return Err(ErrorKind::CantGetAbsPath);
+        }
+
+        let row = Row{path: abs_path.unwrap(), expiration: add_args.get_exp_date()?};
         self.store_entry(&row)
     }
 
@@ -105,9 +109,16 @@ impl Writer {
     pub fn remove_entry(&self, path: &PathBuf) -> Result<(), ErrorKind> {
         let mut restore_rows = vec![];
         let mut removed = false;
+        let path = Writer::get_abs_path(path);
+
+        if path.is_err() {
+            return Err(ErrorKind::FileNotFound);
+        }
+
+        let path = path.unwrap();
 
         self.iter().for_each(|row| {
-            if row.path.ne(&Writer::get_abs_path(path)) {
+            if row.path.ne(path.as_path()) {
                 restore_rows.push(row);
             }
             else {
@@ -116,17 +127,19 @@ impl Writer {
         });
 
         if !removed {
-            return Err(ErrorKind::CantFindElement);
+            return Err(ErrorKind::FileNotFound);
         }
 
-        util::delete_element_from_fs(path);
-        self.get_file().set_len(0).unwrap();
+        if let Err(err) = util::delete_element_from_fs(&path) {
+            return Err(err);
+        }
 
+        self.get_file().set_len(0).unwrap();
         restore_rows.iter().for_each(|row| {
             self.store_entry(row).unwrap();
         });
 
-        Ok(())
+        return Ok(());
     }
 
     pub fn get_all_ordered(&self) -> Vec<Row> {
@@ -139,11 +152,18 @@ impl Writer {
         self.get_all_ordered().iter().filter(|row| row.is_expired()).cloned().collect()
     }
 
-    pub fn check_entry(&mut self, path: &Path) -> bool {
+    pub fn check_entry(&mut self, path: &Path) -> Option<bool> {
         let path = Writer::get_abs_path(path);
-        self.iter().any(|row| -> bool {
-            row.path.eq(&path)
-        })
+        if let Ok(path) = path {
+            let is_some = self.iter().any(|row| -> bool {
+                row.path.eq(&path)
+            });
+
+            Some(is_some)
+        } else {
+            None
+        }
+
     }
 
     pub fn iter(&self) -> WriterIterator {
@@ -227,13 +247,13 @@ pub mod test {
             month: None,
         };
         wrt.add_entry(&add_args).unwrap();
-        assert!(wrt.check_entry(&PathBuf::from("./target")));
+        assert!(wrt.check_entry(&PathBuf::from("./target")).unwrap());
     }
 
     pub fn track_expired_file(path: &PathBuf) {
         let wrt = Writer::from(TEST_FILE_PATH);
         File::create(path).unwrap();
-        let path = Writer::get_abs_path(&PathBuf::from(path));
+        let path = Writer::get_abs_path(&PathBuf::from(path)).unwrap();
         let row = Row{path, expiration: "2020-01-01T00:00:00Z".parse().unwrap()};
         wrt.store_entry(&row).unwrap();
     }
@@ -241,7 +261,7 @@ pub mod test {
     pub fn create_folder_expired(path: &PathBuf) {
         let wrt = Writer::from(TEST_FILE_PATH);
         fs::create_dir(path).unwrap();
-        let path = Writer::get_abs_path(&PathBuf::from(path));
+        let path = Writer::get_abs_path(&PathBuf::from(path)).unwrap();
         let row = Row{path, expiration: "2020-01-01T00:00:00Z".parse().unwrap()};
         wrt.store_entry(&row).unwrap();
     }
@@ -255,9 +275,9 @@ pub mod test {
         let mut wrt = Writer::from(TEST_FILE_PATH);
         track_expired_file(&path);
 
-        assert!(wrt.check_entry(&path));
+        assert!(wrt.check_entry(&path).unwrap());
         assert_eq!(wrt.get_expired().len(), 1);
-        assert_eq!(wrt.get_expired()[0].path, Writer::get_abs_path(&path));
+        assert_eq!(wrt.get_expired()[0].path, Writer::get_abs_path(&path).unwrap());
     }
 
     #[test]
@@ -269,7 +289,7 @@ pub mod test {
         let mut wrt = Writer::from(TEST_FILE_PATH);
 
         assert_eq!(wrt.get_expired().len(), 0);
-        assert!(wrt.check_entry(&path));
+        assert!(wrt.check_entry(&path).unwrap());
     }
 
     #[test]
@@ -279,7 +299,7 @@ pub mod test {
         let path = PathBuf::from("./test");
         let mut wrt = Writer::from(TEST_FILE_PATH);
 
-        assert_eq!(wrt.check_entry(&path), false);
+        assert_eq!(wrt.check_entry(&path).unwrap(), false);
         assert_eq!(wrt.get_expired().len(), 0);
     }
 
@@ -294,10 +314,10 @@ pub mod test {
 
         track_expired_file(&path);
         track_expired_file(&second_path);
-        assert!(wrt.check_entry(&path));
+        assert!(wrt.check_entry(&path).unwrap());
 
         wrt.remove_entry(&path).expect("Error while removing entry");
-        assert!(wrt.check_entry(&second_path));
+        assert!(wrt.check_entry(&second_path).unwrap());
         assert!(second_path.exists());
         assert_eq!(path.exists(), false);
     }
@@ -310,7 +330,7 @@ pub mod test {
         let path = PathBuf::from("./test/test");
 
         create_folder_expired(&path);
-        assert!(wrt.check_entry(&path));
+        assert!(wrt.check_entry(&path).unwrap());
 
         wrt.remove_entry(&path).expect("Error while removing entry");
         assert!(wrt.get_expired().is_empty());

@@ -5,7 +5,8 @@ pub enum ErrorKind {
     CantGetAbsPath,
     WrongFormat,
     CantWriteToFile,
-    CantFindElement
+    CantFindElement,
+    FileNotFound
 }
 
 impl ErrorKind {
@@ -16,7 +17,8 @@ impl ErrorKind {
             ErrorKind::CantGetAbsPath => "Cannot get absolute path from relative",
             ErrorKind::WrongFormat => "Wrong data format, cannot parse",
             ErrorKind::CantWriteToFile => "Cannot write to file",
-            ErrorKind::CantFindElement => "Cannot find element in file"
+            ErrorKind::CantFindElement => "Cannot find element in file",
+            ErrorKind::FileNotFound => "File not found on filesystem"
         }
     }
 }
