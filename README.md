@@ -9,13 +9,19 @@ This project can also be used for other purposes.
 
 ## Status
 
-Currently, the project is a work in progress, so here is a subset of the features that I hope to introduce before tagging the first release:
-- The ``add`` command with the path of a folder or file and an expiration time (optionally also with a flag for automatic deletion or asking for permission)
-- The ``list`` command to list the folders tracked by the tool (and if the aforementioned tag is present, this command creates a list of expired folders that need confirmation to delete)
-- The ``remove`` command to unlist elements from the _expiration list_.
+Currently, the project is a work in progress, although there are some features that are already implemented in the very first release:
+- The ``add`` command with the path of a folder or file and an expiration time (specified with the tags ``-d`` for days, ``-m`` for months, ``-y`` for years)).
+- The ``list`` command to list the elements tracked by the tool (with the flag ``-remove`` the expired element can be removed from the list and with the flag ``-all`` all the elements are listed).
+
+The aim of the project is to get the following features implemented:
+- The ``add`` command with the path of a folder or file and an expiration time (optionally also with a flag for automatic deletion or asking for permission).
+- The ``list`` command to list the folders tracked by the tool. 
+- The ``remove`` command to remove elements from the _expiration list_.
 
 Future features that I want to implement include:
 - A command for the automatic scan of folders with names such as "_target_", "_build_", or "_node_modules_"
+- A nodemon that remove the expired folders automatically
+- An option to put the deleted elements in the Trash folder
 
 ## Contributing
 

@@ -1,5 +1,8 @@
 use clap::{Subcommand, Parser};
 pub mod add;
+pub mod list;
+
+use crate::error;
 
 #[derive(Parser)]
 #[command(version, propagate_version = true, long_about = None)]
@@ -10,9 +13,10 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    Add(add::AddArgs)
+    Add(add::AddArgs),
+    List(list::List)
 }
 
 pub trait Execute {
-    fn execute(&self);
+    fn execute(&self) -> Result<(), error::ErrorKind>;
 }
