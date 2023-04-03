@@ -1,0 +1,248 @@
+name: Deploy release
+
+on:
+  pull_request:
+    branches: [ main ]
+    types:
+      - closed
+      - opened
+      - synchronize
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup | Checkout
+        uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build | Lint
+        run: cargo clippy
+
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Run build for x86_64-unknown-linux-gnu arch
+        run: cargo build
+
+      - name: version
+        id: version
+        run: sudo chmod 777 ./target/debug/exp &&
+          echo "version=$(echo $(./target/debug/exp --version) | grep -E -o '([0-9]*\.)*[0-9]*')" >> $GITHUB_OUTPUT
+
+  compile-x86_64-unknown-linux-gnu:
+    needs: [version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Cache cargo registry
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Run build for x86_64-unknown-linux-gnu arch
+        run: cargo build --release
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-unknown-linux-gnu_binary-${{ needs.version.outputs.version }}
+          path: target/release/exp
+          if-no-files-found: error
+
+  compile-x86_64-windows:
+    runs-on: ubuntu-latest
+    needs: [version]
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Add target for x86_64-windows target
+        run: rustup toolchain install stable-x86_64-pc-windows-gnu
+
+      - name: Update apt
+        run: sudo apt update
+
+      - name: Add mingw64 for cross linking
+        run: sudo apt install -y g++-mingw-w64-x86-64
+
+      - name: Add target to rustup
+        run: rustup target add x86_64-pc-windows-gnu
+
+      - name: Run build for x86_64-windows arch
+        run: cargo build --release --target x86_64-pc-windows-gnu
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-windows_binary-${{ needs.version.outputs.version }}
+          path: target/x86_64-pc-windows-gnu/release/exp.exe
+          if-no-files-found: error
+
+  compile-all-apple-darwin:
+    runs-on: ubuntu-latest
+    needs: [version]
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Update apt
+        run: sudo apt update
+
+      - name: Add dependency for cross-compiler
+        run: sudo apt-get install -y -qq clang gcc g++ zlib1g-dev libmpc-dev libmpfr-dev libgmp-dev curl
+
+      - name: Updating cmake
+        run: curl -sSL https://cmake.org/files/v3.14/cmake-3.14.5-Linux-x86_64.tar.gz | sudo tar -xzC /opt && export PATH=/opt/cmake-3.14.5-Linux-x86_64/bin:$PATH
+
+      - name: Add target to rustup
+        run: rustup target add x86_64-apple-darwin
+
+      - name: Add target to rustup
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Download osx-cross bin
+        run: curl -c ./cookie -s -L "https://drive.google.com/uc?export=download&id=${{ secrets.OSX_CROSS_ID }}" > /dev/null &&
+          curl -Lb ./cookie "https://drive.google.com/uc?export=download&confirm=`awk '/download/ {print $NF}' ./cookie`&id=${{ secrets.OSX_CROSS_ID }}" -o osx-cross.zip
+
+      - name: Unzip osx-cross bin
+        run: unzip osx-cross.zip
+
+      - name: Add osx-cross bin to path
+        run: export PATH="$(pwd)/osxcross/target/bin:$PATH"
+
+      - shell: bash
+        run: |
+          echo "PATH=$(pwd)/osxcross/target/bin:$PATH" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_LINKER=x86_64-apple-darwin21.4-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS=-Car=x86_64-apple-darwin21.4-ar,-Clink-arg=-undefined,-Clink-arg=dynamic_lookup" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=$(pwd)/osxcross/target/lib" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER=aarch64-apple-darwin21.4-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS=-Car=aarch64-apple-darwin21.4-ar,-Clink-arg=-undefined,-Clink-arg=-D__aarch64__" >> $GITHUB_ENV
+      - name: Build for apple-darwin x86_64 arch
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Build for apple-darwin arm arch
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: x86_64-apple-darwin_binary-${{ needs.version.outputs.version }}
+          path: target/x86_64-apple-darwin/release/exp
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: aarch64-apple-darwin_binary-${{ needs.version.outputs.version }}
+          path: target/aarch64-apple-darwin/release/exp
+          if-no-files-found: error
+
+  changelog:
+    if: ${{ github.event.pull_request.merged }} == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+
+      - uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.TOKEN_GITHUB_API }}
+          output: CHANGELOG.md
+          sinceTag: ${{ steps.get-latest-tag.outputs.tag }}
+
+      - name: Install cat command
+        run: sudo apt-get install -y coreutils
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: CHANGELOG.md
+          path: CHANGELOG.md
+          if-no-files-found: error
+
+  release:
+    if: ${{ github.event.pull_request.merged }} == true
+    needs: [lint, version, compile-x86_64-unknown-linux-gnu, compile-x86_64-windows, compile-all-apple-darwin, changelog]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: CHANGELOG.md
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: x86_64-apple-darwin_binary-${{ needs.version.outputs.version }}
+
+      - name: Move binary into folder
+        run: mkdir x86_64-apple-darwin && mv exp ./x86_64-apple-darwin/exp
+      - name: Compress file
+        run: tar -czvf x86_64-apple-darwin.tar.gz ./x86_64-apple-darwin
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: aarch64-apple-darwin_binary-${{ needs.version.outputs.version }}
+
+      - name: Move binary into folder
+        run: mkdir aarch64-apple-darwin && mv exp ./aarch64-apple-darwin/exp
+      - name: Compress file
+        run: tar -czvf aarch64-apple-darwin.tar.gz ./aarch64-apple-darwin
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: x86_64-windows_binary-${{ needs.version.outputs.version }}
+
+      - name: Move binary into folder
+        run: mkdir x86_64-windows && mv exp.exe ./x86_64-windows/exp.exe
+      - name: Compress file
+        run: tar -czvf x86_64-windows.tar.gz ./x86_64-windows
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: x86_64-unknown-linux-gnu_binary-${{ needs.version.outputs.version }}
+
