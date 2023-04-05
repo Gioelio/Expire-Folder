@@ -28,6 +28,12 @@ Future features that I want to implement include:
 - A daemon that remove the expired folders automatically
 - An option to put the deleted elements in the Trash folder
 
+## Downloading
+
+In the release page, accessible from this [link](https://github.com/Gioelio/Expire-Folder/releases/latest) you can find the downloadable bin of the project.
+
+Note that you must set the executable runnable with the command ``chmod +x :path_exp_bin``.
+
 ## Contributing
 
 To contribute to the project, fork the project and open a pull request. If you don't know what needs to be done, please 
