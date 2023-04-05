@@ -1,3 +1,8 @@
+[![Rust test](https://github.com/Gioelio/Expire-Folder/actions/workflows/test.yml/badge.svg)](https://github.com/Gioelio/Expire-Folder/actions/workflows/test.yml)
+[![Latest Stable Version](https://img.shields.io/github/v/release/Gioelio/Expire-Folder?display_name=tag&include_prereleases&sort=semver)]()
+[![Download](https://img.shields.io/github/downloads/Gioelio/Expire-Folder/latest/total)]()
+[![License](https://img.shields.io/github/license/Gioelio/Expire-Folder)]()
+
 # Expire Folder - WIP
 
 ---
