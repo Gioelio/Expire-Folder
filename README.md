@@ -2,7 +2,7 @@
 [![Latest Stable Version](https://img.shields.io/github/v/release/Gioelio/Expire-Folder?display_name=tag&include_prereleases&sort=semver)]()
 [![Download](https://img.shields.io/github/downloads/Gioelio/Expire-Folder/latest/total)]()
 [![License](https://img.shields.io/github/license/Gioelio/Expire-Folder)]()
-
+[![Platform](https://img.shields.io/badge/platform-x86--64%20linux%20%7C%20x86--64%20apple%20darwin%20%7C%20aarch64%20apple%20darwin%20%7C%20x86--64%20windows-lightgrey)]()
 # Expire Folder - WIP
 
 ---
