@@ -20,7 +20,7 @@ The aim of the project is to get the following features implemented:
 
 Future features that I want to implement include:
 - A command for the automatic scan of folders with names such as "_target_", "_build_", or "_node_modules_"
-- A nodemon that remove the expired folders automatically
+- A daemon that remove the expired folders automatically
 - An option to put the deleted elements in the Trash folder
 
 ## Contributing
