@@ -37,7 +37,7 @@ impl cli::Execute for List {
 
                     if self.remove {
                         wrt.remove_entry(&entry.path).unwrap_or_else(|err| {
-                            print!("Error while removing: {} \n\t{}{}", entry.path.as_os_str().to_str().unwrap_or_else(|| "unknown"), "Error: ".red(), err.as_str().red());
+                            println!("\t\t{} {}", "Error:".red(), err.as_str().red());
                         });
                     }
                 }
